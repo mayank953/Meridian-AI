@@ -39,5 +39,4 @@ EXPOSE 8080
 
 # Start the application using Uvicorn
 # Use shell form to allow environment variable expansion for PORT
-CMD uvicorn api.main:app --app-dir backend --host 0.0.0.0 --port ${PORT:-8080}
-
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
