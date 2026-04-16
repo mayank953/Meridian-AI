@@ -3,7 +3,8 @@ name: Deploy to GCP Cloud Run
 on:
   push:
     branches:
-      - main
+      # - main
+      - none
   workflow_dispatch:
 
 env:
