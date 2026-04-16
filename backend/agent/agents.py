@@ -52,23 +52,18 @@ class ProcurementSupervisor:
 
     def _invoke_agent(self, agent, request: str) -> str:
         """Invoke a LangGraph agent and extract the final AI message content."""
-
-        try: 
-            result = agent.invoke(
-                {"messages": [{"role": "user", "content": request}]}
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": request}]}
+        )
+        content = result["messages"][-1].content
+        # create_react_agent may return content as a list of content blocks
+        # e.g. [{'type': 'text', 'text': '...'}, ...]
+        if isinstance(content, list):
+            return "\n".join(
+                block.get("text", "") for block in content
+                if isinstance(block, dict) and block.get("type") == "text"
             )
-            content = result["messages"][-1].content
-            # create_react_agent may return content as a list of content blocks
-            # e.g. [{'type': 'text', 'text': '...'}, ...]
-            if isinstance(content, list):
-                return "\n".join(
-                    block.get("text", "") for block in content
-                    if isinstance(block, dict) and block.get("type") == "text"
-                )
-            return content
-        except Exception as e:
-            log.error("Agent invocation failed", error = str(e))
-            return f"AGENT_ERROR: Failed to run audit phase. Details: {str(e)}"
+        return content
 
     def run_audit(self, request: str) -> dict:
         log.info("Starting audit phase", phase="1 - Risk & Compliance")

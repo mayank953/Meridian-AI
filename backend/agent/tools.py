@@ -23,9 +23,10 @@ def _ask_llm(prompt: str) -> str:
 
 
 # ==========================================
-# DEFINE DYNAMIC TOOLSETS
+# STEP 1: DEFINE DYNAMIC TOOLSETS
 # ==========================================
 
+# --- Agent 1 Tools: Risk & Compliance ---
 
 @tool
 def check_sanctions_list(vendor_name: str) -> str:
@@ -261,7 +262,7 @@ Respond in this exact format, nothing else."""
 
     result = _ask_llm(prompt)
     if result.startswith("LLM_ERROR"):
-        
+        # Conservative fallback: use simple heuristic
         if amount > 50000 or any(
             kw in item_description.lower()
             for kw in ["server", "machine", "vehicle", "building", "equipment", "hardware"]

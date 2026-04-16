@@ -224,8 +224,6 @@ frontend/dist/
 
 # Sensitive
 .env
-.env.*
-! .env.example
 credentials/
 
 # Force inclusion of frontend source files that might be caught by broad rules

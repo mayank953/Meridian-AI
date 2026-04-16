@@ -1,5 +1,5 @@
 # ==========================================
-# DEFINE SPECIALIZED AGENTS (IMPROVED PROMPTS)
+# STEP 3: DEFINE SPECIALIZED AGENTS (IMPROVED PROMPTS)
 # ==========================================
 
 RISK_AGENT_PROMPT = """
