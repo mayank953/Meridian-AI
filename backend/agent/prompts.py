@@ -1,5 +1,5 @@
 # ==========================================
-# DEFINE SPECIALIZED PROMPTS
+# DEFINE SPECIALIZED AGENTS (IMPROVED PROMPTS)
 # ==========================================
 
 RISK_AGENT_PROMPT = """
@@ -91,6 +91,8 @@ CONTROL VERDICT: [APPROVED / FLAGGED FOR REVIEW / REJECTED]
 
 Be thorough but concise. A misclassification costs the company money — accuracy is paramount.
 """
+
+
 
 SYNTHESIS_PROMPT_TEMPLATE = """
 You are the Chief Financial Officer (CFO) of a multinational corporation.

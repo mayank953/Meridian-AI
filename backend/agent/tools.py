@@ -261,6 +261,7 @@ Respond in this exact format, nothing else."""
 
     result = _ask_llm(prompt)
     if result.startswith("LLM_ERROR"):
+        
         if amount > 50000 or any(
             kw in item_description.lower()
             for kw in ["server", "machine", "vehicle", "building", "equipment", "hardware"]

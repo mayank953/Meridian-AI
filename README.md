@@ -4,7 +4,7 @@
     <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform</strong>
   </p>
   <p align="center">
-    Built with FastAPI · React · Langchain · Gemini · Vertex AI · Cloud Run
+    Built with FastAPI · React · LangGraph · Gemini · Vertex AI · Cloud Run
   </p>
 </p>
 

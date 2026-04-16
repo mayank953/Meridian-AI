@@ -5,49 +5,43 @@ from langchain_core.prompts import ChatPromptTemplate
 from rag.vector_store import vector_store
 from rag.llm import get_llm
 from logger import GLOBAL_LOGGER as log
-
 # ==========================================
-# Building the RAG Chain
+# 4. Building the RAG Chain
 # ==========================================
 def ask_question(query: str):
     """Retrieves context and generates an answer using Gemini."""
     log.info("RAG query received", query=query)
 
-    try:
-        llm = get_llm()
+    llm = get_llm()
 
-        # Create a retriever from the vector store (fetch top 3 most relevant chunks)
-        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+    # Create a retriever from the vector store (fetch top 3 most relevant chunks)
+    retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
-        # Define the system prompt to guide the LLM's behavior
-        system_prompt = (
-            "You are a helpful assistant for question-answering tasks. "
-            "Use the following pieces of retrieved context to answer the question. "
-            "If you don't know the answer based on the context, say that you don't know. "
-            "Keep the answer concise and accurate."
-            "\n\n"
-            "Context: {context}"
-        )
+    # Define the system prompt to guide the LLM's behavior
+    system_prompt = (
+        "You are a helpful assistant for question-answering tasks. "
+        "Use the following pieces of retrieved context to answer the question. "
+        "If you don't know the answer based on the context, say that you don't know. "
+        "Keep the answer concise and accurate."
+        "\n\n"
+        "Context: {context}"
+    )
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{input}"),
-        ])
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", "{input}"),
+    ])
 
-        # Chain 1: Formats the prompt with retrieved documents and passes to the LLM
-        question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    # Chain 1: Formats the prompt with retrieved documents and passes to the LLM
+    question_answer_chain = create_stuff_documents_chain(llm, prompt)
 
-        # Chain 2: Orchestrates the retrieval step and the QA step
-        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+    # Chain 2: Orchestrates the retrieval step and the QA step
+    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
-        # Execute the chain
-        response = rag_chain.invoke({"input": query})
+    # Execute the chain
+    response = rag_chain.invoke({"input": query})
 
-        log.info("RAG answer generated", answer=response["answer"])
-        return response["answer"]
-    except Exception as e:
-        log.error("Failed to execute RAG query", query=query, error=str(e))
-        return f"RAG_ERROR: {str(e)}"
+    log.info("RAG answer generated", answer=response["answer"])
 
 # ==========================================
 # Execution

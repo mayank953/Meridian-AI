@@ -52,12 +52,14 @@ class ProcurementSupervisor:
 
     def _invoke_agent(self, agent, request: str) -> str:
         """Invoke a LangGraph agent and extract the final AI message content."""
-        try:
+
+        try: 
             result = agent.invoke(
                 {"messages": [{"role": "user", "content": request}]}
             )
             content = result["messages"][-1].content
             # create_react_agent may return content as a list of content blocks
+            # e.g. [{'type': 'text', 'text': '...'}, ...]
             if isinstance(content, list):
                 return "\n".join(
                     block.get("text", "") for block in content
@@ -65,7 +67,7 @@ class ProcurementSupervisor:
                 )
             return content
         except Exception as e:
-            log.error("Agent invocation failed", error=str(e))
+            log.error("Agent invocation failed", error = str(e))
             return f"AGENT_ERROR: Failed to run audit phase. Details: {str(e)}"
 
     def run_audit(self, request: str) -> dict:
@@ -89,12 +91,8 @@ class ProcurementSupervisor:
         )
 
         log.info("Starting audit phase", phase="4 - CFO Synthesis")
-        try:
-            cfo_memo = self.llm.invoke(synthesis_prompt).content
-            log.info("CFO Synthesis complete", memo=cfo_memo)
-        except Exception as e:
-            log.error("CFO Synthesis failed", error=str(e))
-            cfo_memo = f"SYNTHESIS_ERROR: Failed to generate CFO memo. Details: {str(e)}"
+        cfo_memo = self.llm.invoke(synthesis_prompt).content
+        log.info("CFO Synthesis complete", memo=cfo_memo)
         return {
             "risk_result": risk_result,
             "tax_result": tax_result,
@@ -108,17 +106,17 @@ class ProcurementSupervisor:
 # EXECUTION
 # ==========================================
 
-# if __name__ == "__main__":
-#     supervisor = ProcurementSupervisor()
+if __name__ == "__main__":
+    supervisor = ProcurementSupervisor()
 
-#     complex_request = """
-#     Purchase Request:
-#     - Vendor: ShadowTrade LLC
-#     - Item: High-performance AI GPU Servers
-#     - Total Cost: 120,000 EUR
-#     - Destination: India Branch
-#     - FX Rate quoted: 1 EUR = 98 INR
-#     """
+    complex_request = """
+    Purchase Request:
+    - Vendor: ShadowTrade LLC
+    - Item: High-performance AI GPU Servers
+    - Total Cost: 120,000 EUR
+    - Destination: India Branch
+    - FX Rate quoted: 1 EUR = 98 INR
+    """
 
-#     final_memo = supervisor.run_audit(complex_request)
-#     log.info("Audit complete", memo=final_memo)
+    final_memo = supervisor.run_audit(complex_request)
+    log.info("Audit complete", memo=final_memo)

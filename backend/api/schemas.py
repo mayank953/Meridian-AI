@@ -1,8 +1,12 @@
 from pydantic import BaseModel
 
+
 # ============================================================
 # AGENT  Schemas
 # ============================================================
+
+
+
 class AuditRequest(BaseModel):
     request_text: str
 
@@ -12,9 +16,11 @@ class AuditResponse(BaseModel):
     control_result: str
     cfo_memo: str
 
+
 # ============================================================
 # RAG  Schemas
 # ============================================================
+
 
 class QueryRequest(BaseModel):
     query: str
