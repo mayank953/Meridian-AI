@@ -46,3 +46,4 @@ if settings.gcp_service_account_path:
     else:
         # Try relative to the current working directory if absolute didn't exist
         # log.warning("Service account file not found", path=abs_path)
+        pass
