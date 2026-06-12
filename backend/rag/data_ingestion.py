@@ -69,6 +69,17 @@ def ingest_data_from_gcs():
 
     # Embed and store in Vertex AI Vector Search
     log.info("Embedding chunks and pushing to Vertex AI Vector Search")
-    vector_store.add_documents(chunks)
+    try:
+        vector_store.add_documents(chunks)
+    except Exception as e:
+        import traceback
+
+        print("=" * 100)
+        print("VECTOR STORE FAILURE")
+        print("ERROR:", str(e))
+        print(traceback.format_exc())
+        print("=" * 100)
+
+    raise    
     log.info("Ingestion complete")
 

@@ -235,7 +235,19 @@ async def upload_documents(files: list[UploadFile] = File(...)):
 
             # Embed & store
             log.info("Ingesting chunks into Vector Search", filename=upload.filename, chunks=len(chunks))
-            vector_store.add_documents(chunks)
+            try:
+                vector_store.add_documents(chunks)
+            except Exception as e:
+                import traceback
+
+                print("=" * 100)
+                print("VECTOR STORE FAILURE")
+                print("ERROR:", str(e))
+                print(traceback.format_exc())
+                print("=" * 100)
+
+                raise            
+            
             log.info("Successfully ingested chunks", filename=upload.filename, chunks=len(chunks))
 
             results.append({
