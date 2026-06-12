@@ -47,7 +47,24 @@ def ingest_data_from_gcs():
         chunk_size=1000,
         chunk_overlap=100,
     )
-    chunks = text_splitter.split_documents(documents)
+    chunks = text_splitter.split_documents(docs)
+
+    # DEBUG START
+    from rag.embeddings import get_embeddings
+
+    emb = get_embeddings()
+
+    texts = [c.page_content for c in chunks]
+
+    vectors = emb.embed_documents(texts)
+
+    print("=" * 80)
+    print(f"CHUNKS COUNT: {len(chunks)}")
+    print(f"TEXTS COUNT: {len(texts)}")
+    print(f"EMBEDDINGS COUNT: {len(vectors)}")
+    print("=" * 80)
+    # DEBUG END
+
     log.info("Split documents into chunks", chunks=len(chunks))
 
     # Embed and store in Vertex AI Vector Search
