@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">MeridianAI</h1>
+  <h1 align="center">KronesAI Audit</h1>
   <p align="center">
     <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform - Krones</strong>
   </p>
