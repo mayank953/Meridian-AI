@@ -21,12 +21,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const DEFAULT_REQUEST = `Purchase Request:
-- Vendor: ShadowTrade LLC
-- Item: High-performance AI GPU Servers
-- Total Cost: 120,000 EUR
-- Destination: India Branch
-- FX Rate quoted: 1 EUR = 98 INR`;
+const DEFAULT_REQUEST = `Purchase Request — Krones AG Global Procurement:
+- Vendor: Mitsubishi Electric Europe B.V. (Netherlands)
+- Item: MELSEC iQ-R Series PLC Controllers + HMI Panels (Qty: 200 units) for Krones Modulfill filling line production
+- Total Cost: 480,000 EUR
+- Origin: JP (Japan — manufactured)
+- Destination: DE (Krones AG, Neutraubling, Germany)
+- FX Rate quoted: 1 EUR = 163.5 JPY
+- Cost Centre: Fertigung Neutraubling (Plant 1)
+- Requested by: Global Procurement — Electronics & Automation Category`;
 
 interface Phase {
   name: string;
@@ -112,7 +115,7 @@ export default function AuditTab() {
               </div>
               <div>
                 <CardTitle className="text-lg">Procurement Audit</CardTitle>
-                <CardDescription>Multi-agent compliance verification pipeline</CardDescription>
+                <CardDescription>Krones AG — Risk · Tax & Treasury · IFRS Control · CFO Prüfungsvermerk</CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -200,8 +203,8 @@ export default function AuditTab() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-border mb-4">
                     <ShieldCheck className="h-7 w-7 opacity-25" />
                   </div>
-                  <p className="text-sm font-medium">Execute an audit to see the agent pipeline status.</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Each specialist agent will process sequentially.</p>
+                  <p className="text-sm font-medium">Execute an audit to see the Krones agent pipeline status.</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Risk, Tax, and IFRS Control agents process sequentially before CFO synthesis.</p>
                 </div>
               ) : (
                 <div className="relative">
@@ -353,9 +356,9 @@ export default function AuditTab() {
                     <FileText className="h-7 w-7 text-muted-foreground/25" />
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">
-                    Submit a procurement request to generate the CFO audit memo.
+                    Submit a Krones procurement request to generate the CFO Prüfungsvermerk.
                   </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">The memorandum will appear here after all agents complete.</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">The memorandum will appear here after all specialist agents complete.</p>
                 </div>
               )}
             </CardContent>

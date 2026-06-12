@@ -5,7 +5,7 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     # App
-    app_name: str = "Meridian AI"
+    app_name: str = "Krones Procurement Intelligence"
     app_env: str = Field("", validation_alias="ENVIRONMENT")
     app_version: str = "1.0.0"
     debug: bool = True

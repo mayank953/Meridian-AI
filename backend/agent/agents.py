@@ -105,12 +105,13 @@ if __name__ == "__main__":
     supervisor = ProcurementSupervisor()
 
     complex_request = """
-    Purchase Request:
-    - Vendor: ShadowTrade LLC
-    - Item: High-performance AI GPU Servers
-    - Total Cost: 120,000 EUR
-    - Destination: India Branch
-    - FX Rate quoted: 1 EUR = 98 INR
+    Purchase Request — Krones AG Global Procurement:
+    - Vendor: Mitsubishi Electric Europe B.V. (Netherlands)
+    - Item: MELSEC iQ-R Series PLC Controllers + HMI Panels (Qty: 200) for Krones Modulfill filling line
+    - Total Cost: 480,000 EUR
+    - Origin: JP (Japan)
+    - Destination: DE (Krones AG, Neutraubling, Germany)
+    - FX Rate quoted: 1 EUR = 163.5 JPY
     """
 
     final_memo = supervisor.run_audit(complex_request)

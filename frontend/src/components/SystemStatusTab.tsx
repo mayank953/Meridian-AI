@@ -90,7 +90,7 @@ export default function SystemStatusTab() {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_6px_hsl(var(--success))]" />
-          <span className="text-sm font-semibold font-heading text-card-foreground">All systems operational</span>
+          <span className="text-sm font-semibold font-heading text-card-foreground">Krones AI — All systems operational</span>
         </div>
         <span className="text-[11px] text-muted-foreground">Auto-refreshes every 5s · Last: {lastUpdated}</span>
       </div>

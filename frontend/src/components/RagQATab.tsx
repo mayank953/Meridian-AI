@@ -3,10 +3,10 @@ import { Search, Send, Sparkles, MessageSquare, Clock, Trash2 } from "lucide-rea
 import { askQuestion } from "@/lib/api";
 
 const EXAMPLE_QUERIES = [
-  "What is the Revenue in FY2022?",
-  "What countries does Acme Manufacturing operate in?",
-  "What percentage of the workforce will retire in 5 years?",
-  "What is the COGS in FY2024?",
+  "What is Krones AG total revenue in FY2024?",
+  "What are the standard payment terms for servo motor suppliers?",
+  "What EU customs duty applies to PLC controllers imported from Japan?",
+  "What is the IFRS depreciation schedule for filling line equipment?",
 ];
 
 interface HistoryEntry {
@@ -51,7 +51,7 @@ export default function RagQATab() {
             <h2 className="text-base font-semibold font-heading text-card-foreground">Knowledge Query</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Ask questions against your ingested documents. The RAG pipeline retrieves relevant chunks and generates an answer.
+            Ask questions against ingested Krones procurement documents — supplier contracts, EU tariff schedules, IFRS annual reports, and compliance policies.
           </p>
 
           <div className="mb-5 space-y-2">
@@ -79,7 +79,7 @@ export default function RagQATab() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAsk(); } }}
-            placeholder="e.g. What was the total revenue in FY2022?"
+            placeholder="e.g. What is the EU import duty rate for servo motors from Japan?"
           />
           <div className="flex items-center justify-between mt-3">
             <span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for newline</span>

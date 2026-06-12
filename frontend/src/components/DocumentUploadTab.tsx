@@ -126,7 +126,7 @@ export default function DocumentUploadTab() {
         <div>
           <h2 className="text-2xl font-bold font-heading text-card-foreground">Document Ingestion</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Populate your RAG knowledge base from various sources.
+            Populate the Krones procurement knowledge base — supplier contracts, tariff schedules, IFRS reports, and compliance policies.
           </p>
         </div>
 
@@ -284,7 +284,7 @@ export default function DocumentUploadTab() {
                         <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center shrink-0">
                           <CheckCircle className="w-5 h-5" />
                         </div>
-                        All files processed. Knowledge base updated.
+                        All files processed. Krones knowledge base updated.
                       </div>
                     )}
                   </div>
@@ -303,8 +303,8 @@ export default function DocumentUploadTab() {
                   <div>
                     <h3 className="text-xl font-bold font-heading text-card-foreground">Cloud Sync</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-                      Synchronize your vector index with the files already in your GCS bucket. 
-                      This will re-scan the bucket and index any new content.
+                      Synchronize the Krones vector index with documents already in the GCS bucket.
+                      Re-scans the bucket and indexes any new procurement documents.
                     </p>
                   </div>
                 </div>
