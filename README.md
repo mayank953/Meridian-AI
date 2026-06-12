@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MeridianAI</h1>
   <p align="center">
-    <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform</strong>
+    <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform - Krones</strong>
   </p>
   <p align="center">
     Built with FastAPI · React · LangChain · Gemini · Vertex AI · Cloud Run
