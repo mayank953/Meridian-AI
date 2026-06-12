@@ -1,7 +1,7 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
-from logger import GLOBAL_LOGGER as log
+# from logger import GLOBAL_LOGGER as log
 
 class Settings(BaseSettings):
     # App
@@ -42,7 +42,7 @@ if settings.gcp_service_account_path:
     abs_path = os.path.abspath(settings.gcp_service_account_path)
     if os.path.exists(abs_path):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = abs_path
-        log.info("Google Application Credentials set", path=abs_path)
+        # log.info("Google Application Credentials set", path=abs_path)
     else:
         # Try relative to the current working directory if absolute didn't exist
-        log.warning("Service account file not found", path=abs_path)
+        # log.warning("Service account file not found", path=abs_path)
