@@ -8,6 +8,8 @@
   </p>
 </p>
 
+> **Teaching or learning with this project?** Start with [`course/`](course/README.md): session-by-session teaching guide, pre-class checklist, sample documents and troubleshooting.
+
 ---
 
 ## Architecture
@@ -20,7 +22,7 @@
 |---|---|---|
 | **Client** | React Frontend | Vite, TypeScript, Tailwind CSS, Shadcn UI |
 | **Compute** | FastAPI Backend on GCP Cloud Run | Uvicorn, CORS, Static File Serving |
-| **AI Agents** | Multi-agent Procurement Audit, RAG Pipeline | LangChain (`create_agent`), Gemini 2.5 Pro |
+| **AI Agents** | Multi-agent Procurement Audit, RAG Pipeline | LangChain (`create_agent`), Gemini 3.8 Flash |
 | **Data & AI** | Gemini LLMs, Vertex AI Vector Search, Cloud Storage | Embeddings, GCS Buckets |
 | **Security** | Secret Manager | Runtime API Key Injection |
 | **CI/CD** | GitHub Actions → Cloud Build → Artifact Registry → Cloud Run | Automated Provisioning & Deployment |
@@ -304,7 +306,7 @@ Create a `.env` file in the project root. See the table below for required and o
 | `GCS_BUCKET_NAME` | ✅ | GCS bucket for vector staging & uploads |
 | `GCS_PREFIX` | | Upload path prefix (default: `uploads/`) |
 | `GCP_SERVICE_ACCOUNT_PATH` | | Path to local service account JSON |
-| `VERTEX_LLM_MODEL_NAME` | | Chat model (default: `gemini-2.5-pro`) |
+| `VERTEX_LLM_MODEL_NAME` | | Chat model (default: `gemini-3.8-flash`) |
 | `VERTEX_EMBEDDING_MODEL_NAME` | | Embedding model (default: `text-embedding-005`). Must output 768 dimensions to match the Vector Search index. |
 | `VECTOR_SEARCH_INDEX_ID` | ✅ | Vertex AI Vector Search index resource ID |
 | `VECTOR_SEARCH_INDEX_ENDPOINT_ID` | ✅ | Vertex AI Vector Search endpoint resource ID |

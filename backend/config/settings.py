@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     gcp_service_account_path: str = Field("", validation_alias="GCP_SERVICE_ACCOUNT_PATH")
 
     # Model / RAG
-    llm_model_name: str = Field("gemini-2.5-pro", validation_alias="VERTEX_LLM_MODEL_NAME")
+    llm_model_name: str = Field("gemini-3.8-flash", validation_alias="VERTEX_LLM_MODEL_NAME")
+    # 0 = most repeatable answers. If the model loops or repeats itself, try 1.0 (Gemini 3 default)
+    llm_temperature: float = Field(0.0, validation_alias="LLM_TEMPERATURE")
     # Must output 768 dimensions to match the Vector Search index (see rag/embeddings.py)
     embedding_model_name: str = Field("text-embedding-005", validation_alias="VERTEX_EMBEDDING_MODEL_NAME")
     # VERTEX AI VECTOR SEARCH

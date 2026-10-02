@@ -366,7 +366,7 @@ export default function AuditTab() {
             {memo && (
               <CardFooter className="border-t pt-4 pb-4 mt-auto">
                 <div className="flex w-full items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                  <span>Gemini 2.5 Pro · Auto-managed tokens</span>
+                  <span>Gemini · Auto-managed tokens</span>
                   <div className="flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-success" />
                     Complete

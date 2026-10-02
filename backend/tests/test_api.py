@@ -53,3 +53,19 @@ def test_chunking_splits_long_text_and_keeps_metadata():
     assert len(chunks) > 1
     assert all(c.metadata["source"] == "test.pdf" for c in chunks)
     assert all(len(c.page_content) <= 1000 for c in chunks)
+
+
+def test_sample_pdfs_load_and_chunk():
+    """The demo PDFs in course/sample_docs can be read and split (no Google Cloud needed)."""
+    import glob
+    import os
+
+    from langchain_community.document_loaders import PyPDFLoader
+
+    from rag.data_ingestion import split_into_chunks
+
+    folder = os.path.join(os.path.dirname(__file__), "..", "..", "course", "sample_docs")
+    pdfs = glob.glob(os.path.join(folder, "*.pdf"))
+    assert len(pdfs) == 4
+    for pdf in pdfs:
+        assert split_into_chunks(PyPDFLoader(pdf).load()), pdf
