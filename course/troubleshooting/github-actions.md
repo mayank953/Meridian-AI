@@ -21,7 +21,7 @@ Check the printed `INDEX_ID`/`ENDPOINT_ID`; read Cloud Run logs; check `VERTEX_L
 **Pushes to `main` redeploy everything**
 By design (`on: push: main`). While teaching, work on a branch; use *Run workflow* manually.
 
-## Security notes to say out loud
+## Security notes
 - A stored JSON key is a long-lived secret; the safer modern option is **Workload Identity Federation** (no key stored).
 - `Editor` + `IAM Admin` is broad; fine for a classroom, not for production.
 - `--allow-unauthenticated` makes the app public; `--max-instances 3` limits the damage if someone abuses it.

@@ -20,3 +20,9 @@ Fix: `gcloud config set project <project-id>` and check `GCP_PROJECT_ID` in `.en
 
 **Unexpected bill**
 Cause: the Vector Search endpoint keeps a node running 24/7. Fix: see [vector-search.md](vector-search.md) (teardown) and set a budget alert.
+
+**"Project is not allowed to use …" / repeated rate-limit or quota errors on a free-trial account**
+Cause: free-trial accounts have restricted access and fixed quotas for some Vertex AI services (embeddings run on Vertex AI here; the Gemini chat key from AI Studio is separate). Fix: in Billing, activate the full (paid) account. Remaining trial credit is still applied first; only usage beyond it is charged. Then retry.
+
+**Free-trial credit "disappeared" or resources were deleted**
+Cause: the trial ends after 90 days or when the $300 is used. After a 30-day grace period trial resources are permanently deleted unless you upgrade. Fix: upgrade before that, or re-create resources in a new project.

@@ -8,7 +8,9 @@
   </p>
 </p>
 
-> **Teaching or learning with this project?** Start with [`course/`](course/README.md): session-by-session teaching guide, pre-class checklist, sample documents and troubleshooting.
+> **Learning with this project?** Start with the step-by-step [**Learner Guide**](docs/README.md) (requirements, the $300 free-credit explained, code structure, setup, walkthroughs). Everything in one file: [complete guide](docs/MERIDIAN_AI_COMPLETE_GUIDE.md).
+>
+> **Teaching it?** See [`course/`](course/README.md): session plans, pre-class checklist, sample documents.
 
 ---
 
@@ -77,6 +79,8 @@ Meridian-AI/
 │   │   ├── pages/      # Application pages (RAG Q&A, Procurement Audit)
 │   │   └── hooks/      # Custom React hooks
 │   └── package.json
+├── docs/               # Learner guide (step-by-step markdown documents)
+├── course/             # Instructor material and sample PDFs
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml  # CI/CD — full GCP provisioning & Cloud Run deploy
@@ -238,7 +242,7 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at **http://localhost:5173** (default Vite port) and talks directly to the backend at `http://localhost:8080` (see `frontend/src/lib/api.ts`).
+The frontend will be available at **http://localhost:3000** (set in `frontend/vite.config.ts`) and talks directly to the backend at `http://localhost:8080` (see `frontend/src/lib/api.ts`).
 
 ---
 

@@ -29,5 +29,5 @@ gcloud ai indexes delete <INDEX_ID> --region=$REGION
 ```
 Also delete the Cloud Run service and the bucket if you are done with the project.
 
-## Alternatives (for the "what else" slide)
+## Alternatives
 Vector Search 2.0 (collection-based, no separate endpoint step, hybrid search), Postgres + pgvector, Pinecone, Chroma, Vertex AI RAG Engine.
