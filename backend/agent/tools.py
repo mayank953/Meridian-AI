@@ -2,7 +2,7 @@ import json
 import requests
 from langchain_core.tools import tool
 from typing import Dict
-from rag.llm import get_llm
+from rag.llm import extract_text, get_llm
 from logger import GLOBAL_LOGGER as log
 
 
@@ -10,14 +10,11 @@ from logger import GLOBAL_LOGGER as log
 # INTERNAL LLM HELPER
 # ==========================================
 
-_llm = get_llm()
-
-
 def _ask_llm(prompt: str) -> str:
     """Invoke the configured LLM and return the text content."""
     try:
-        response = _llm.invoke(prompt)
-        return response.content
+        response = get_llm().invoke(prompt)
+        return extract_text(response.content)
     except Exception as e:
         return f"LLM_ERROR: {str(e)}"
 

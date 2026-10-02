@@ -1,19 +1,17 @@
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+"""Text -> vector conversion, used both when indexing documents and when searching.
+
+IMPORTANT: the Vector Search index is created with 768 dimensions (see
+index_metadata.json / deploy.yml). The embedding model must produce 768-dimensional
+vectors, and the SAME model must be used for indexing and for querying.
+text-embedding-005 produces 768 dimensions.
+"""
+from functools import lru_cache
 
 from langchain_google_vertexai import VertexAIEmbeddings
 
 from config.settings import settings
 
-# def get_embeddings():
-#     return GoogleGenerativeAIEmbeddings(
-#         model=settings.embedding_model_name,
-#         google_api_key=settings.GOOGLE_API_KEY,
-#         task_type="retrieval_document",
-#         output_dimensionality=768
-#     )
 
-
-def get_embeddings():
-    return VertexAIEmbeddings(
-        model_name="text-embedding-005"
-    )
+@lru_cache(maxsize=1)
+def get_embeddings() -> VertexAIEmbeddings:
+    return VertexAIEmbeddings(model_name=settings.embedding_model_name)

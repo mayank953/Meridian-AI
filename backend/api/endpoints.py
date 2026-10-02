@@ -1,71 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from config.settings import settings
-from datetime import datetime 
-from agent.agents import ProcurementSupervisor
-from api.schemas import (AuditRequest,AuditResponse,QueryRequest,QueryResponse)
-from rag.data_ingestion import ingest_data_from_gcs
-from rag.vector_store import vector_store
-from rag.llm import get_llm
-from logger import GLOBAL_LOGGER as log
+"""REST endpoints. Each route is thin: validate input, call the real logic, return JSON.
 
-rag_llm = get_llm()
-import sys, platform, traceback, tempfile, os, shutil
+    /api/health        - is the server up?
+    /api/status        - configuration summary shown on the System Status tab
+    /api/agent/audit   - run the multi-agent procurement audit        (agent/agents.py)
+    /api/rag/ask       - ask a question about the ingested documents  (rag/retrieval.py)
+    /api/rag/upload    - upload PDFs and index them                   (rag/data_ingestion.py)
+    /api/rag/ingest-gcs- index every PDF already sitting in the bucket
+"""
+import os
+import platform
+import shutil
+import sys
+import tempfile
+import traceback
+from datetime import datetime, timezone
+from functools import lru_cache
 
-# LangChain / Pipeline Imports
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_classic.retrievers.multi_query import MultiQueryRetriever
-from langchain_classic.retrievers import ContextualCompressionRetriever
-from langchain_classic.retrievers.document_compressors import LLMChainExtractor
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from google.cloud import storage
 
+from agent.agents import ProcurementSupervisor
+from api.schemas import AuditRequest, AuditResponse, QueryRequest, QueryResponse
+from config.settings import settings
+from logger import GLOBAL_LOGGER as log
+from rag.data_ingestion import ingest_data_from_gcs, ingest_pdf
+from rag.retrieval import ask_question
 
-health_router = APIRouter(prefix="/api",tags=["Health"])
-status_router = APIRouter(prefix="/api",tags=["Status"])
-agent_router  = APIRouter(prefix="/api/agent",tags=["Agent"])
-rag_router = APIRouter(prefix="/api/rag",tags=["RAG"])
+health_router = APIRouter(prefix="/api", tags=["Health"])
+status_router = APIRouter(prefix="/api", tags=["Status"])
+agent_router = APIRouter(prefix="/api/agent", tags=["Agent"])
+rag_router = APIRouter(prefix="/api/rag", tags=["RAG"])
 
 # In-memory upload tracker (reset on restart)
 _upload_history: list[dict] = []
-_server_start_time = datetime.utcnow()
+_server_start_time = datetime.now(timezone.utc)
 
-supervisor = ProcurementSupervisor()
+
+@lru_cache(maxsize=1)
+def get_supervisor() -> ProcurementSupervisor:
+    """Build the agents on the first audit request, not when the server starts."""
+    return ProcurementSupervisor()
+
 
 # ---------------------------------------------------------------------------
-# Health
+# Health & status
 # ---------------------------------------------------------------------------
 
 @health_router.get("/health")
 def health():
     return {"status": "ok"}
 
-# ---------------------------------------------------------------------------
-# System Status
-# ---------------------------------------------------------------------------
 
 @status_router.get("/status")
 def system_status():
-    """Return real-time system configuration and health information."""
-    
-
-    uptime_seconds = int((datetime.utcnow() - _server_start_time).total_seconds())
+    """Return system configuration and health information (no calls to GCP)."""
+    uptime_seconds = int((datetime.now(timezone.utc) - _server_start_time).total_seconds())
     hours, remainder = divmod(uptime_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-
-    # Try to pull index / endpoint IDs from the vector_store internals
-    try:
-        index_id = vector_store._searcher._index.resource_name
-    except Exception:
-        index_id = "NA"
-
-    try:
-        endpoint_id = vector_store._searcher._index_endpoint.resource_name
-    except Exception:
-        endpoint_id = "NA"
 
     return {
         "backend": {
@@ -83,97 +75,53 @@ def system_status():
             "gcs_prefix": settings.GCS_PREFIX,
         },
         "vector_search": {
-            "index_id": index_id,
-            "endpoint_id": endpoint_id,
+            "index_id": settings.vector_search_index_id or "NA",
+            "endpoint_id": settings.vector_search_index_endpoint_id or "NA",
             "stream_update": True,
         },
         "models": {
             "embedding": settings.embedding_model_name,
             "llm": settings.llm_model_name,
-            "llm_framework": "Vertex AI / LangChain",
+            "llm_framework": "Gemini API (chat) + Vertex AI (embeddings) via LangChain",
         },
         "ingestion": {
             "uploads_this_session": len(_upload_history),
         },
     }
 
-# ============================================================
-# AGENT  endpoints
-# ============================================================
+
+# ---------------------------------------------------------------------------
+# Agent
+# ---------------------------------------------------------------------------
 
 @agent_router.post("/audit", response_model=AuditResponse)
 def run_audit(payload: AuditRequest):
     """Run the full multi-agent procurement audit and return all phase results."""
     try:
-        result = supervisor.run_audit(payload.request_text)
+        result = get_supervisor().run_audit(payload.request_text)
         return AuditResponse(**result)
     except Exception as e:
+        log.error("Audit failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
-    
 
 
-# ============================================================
-# RAG  endpoints
-# ============================================================
-
+# ---------------------------------------------------------------------------
+# RAG
+# ---------------------------------------------------------------------------
 
 @rag_router.post("/ask", response_model=QueryResponse)
 def rag_query(payload: QueryRequest):
     """Query the RAG pipeline (Vertex AI Vector Search + Gemini)."""
     try:
-        # Configure Base Retriever
-        base_retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-
-        # Route Selection
-        if payload.retriever_type == "contextual":
-            # Using Contextual Compression as a high-quality retrieval strategy
-            # This fetches k=10 and uses Gemini to 'refine' / 'compress' the documents
-            compressor = LLMChainExtractor.from_llm(rag_llm)
-            retriever = ContextualCompressionRetriever(
-                base_compressor=compressor, 
-                base_retriever=vector_store.as_retriever(search_kwargs={"k": 10})
-            )
-        elif payload.retriever_type == "multiquery":
-            
-            log.info("Using MultiQuery retriever strategy")
-            retriever = MultiQueryRetriever.from_llm(retriever=base_retriever, llm=rag_llm)
-        else:
-            retriever = base_retriever
-
-        # Note: 'mmr' requested but falling back to similarity if backend lacks implementation
-        # The UI still shows MMR, but it will use similarity search for stability.
-
-        system_prompt = (
-            "You are a helpful assistant for question-answering tasks. "
-            "Use the following pieces of retrieved context to answer the question. "
-            "If you don't know the answer based on the context, say that you don't know. "
-            "Keep the answer concise and accurate."
-            "\n\n"
-            "Context: {context}"
-        )
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "{input}"),
-        ])
-        question_answer_chain = create_stuff_documents_chain(rag_llm, prompt)
-        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-        response = rag_chain.invoke({"input": payload.query})
-
-        return QueryResponse(answer=response["answer"])
+        return QueryResponse(answer=ask_question(payload.query, payload.retriever_type))
     except Exception as e:
+        log.error("RAG query failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ============================================================
-# DOCUMENT UPLOAD  endpoint  (local PDF → Vector Search)
-# ============================================================
-
 @rag_router.post("/upload")
 async def upload_documents(files: list[UploadFile] = File(...)):
-    """
-    Accept one or more PDF uploads, chunk them, embed with Vertex AI,
-    and push into the existing Vector Search index.
-    """
+    """Accept one or more PDFs, keep a copy in GCS, then chunk, embed and index them."""
     if not files:
         raise HTTPException(status_code=400, detail="No files provided.")
 
@@ -190,41 +138,24 @@ async def upload_documents(files: list[UploadFile] = File(...)):
                 })
                 continue
 
-            # Save to temp location (must use await to read async UploadFile correctly)
-            local_path = os.path.join(tmp_dir, upload.filename)
-            contents = await upload.read()
+            # Save to a temp file (the async UploadFile must be awaited to read it)
+            local_path = os.path.join(tmp_dir, os.path.basename(upload.filename))
             with open(local_path, "wb") as f:
-                f.write(contents)
+                f.write(await upload.read())
 
-            # Upload original PDF to GCS under uploads/ so it's persisted in the bucket
+            # Keep the original PDF in the bucket as well
             try:
-                
-                
-                gcs_client = storage.Client(project=settings.GCP_PROJECT)
-                bucket = gcs_client.bucket(settings.GCS_BUCKET_NAME)
+                bucket = storage.Client(project=settings.GCP_PROJECT).bucket(settings.GCS_BUCKET_NAME)
                 gcs_path = f"{settings.GCS_PREFIX}{upload.filename}"
-                blob = bucket.blob(gcs_path)
-                blob.upload_from_filename(local_path, content_type="application/pdf")
+                bucket.blob(gcs_path).upload_from_filename(local_path, content_type="application/pdf")
                 log.info("File saved to GCS", filename=upload.filename, gcs_path=f"gs://{settings.GCS_BUCKET_NAME}/{gcs_path}")
             except Exception as gcs_err:
                 log.warning("Could not save to GCS", error=str(gcs_err))
 
-            # Load & split
-            loader = PyPDFLoader(local_path)
-            docs = loader.load()
-            log.info("PDF pages loaded", filename=upload.filename, pages=len(docs))
+            # ingest_pdf is slow and blocking, so run it in a worker thread to keep the server responsive
+            summary = await run_in_threadpool(ingest_pdf, local_path, f"upload://{upload.filename}")
 
-            for doc in docs:
-                doc.metadata["source"] = f"upload://{upload.filename}"
-
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=100,
-            )
-            chunks = text_splitter.split_documents(docs)
-            log.info("Chunks created", filename=upload.filename, chunks=len(chunks))
-
-            if not chunks:
+            if summary["chunks"] == 0:
                 log.warning("No chunks extracted, skipping indexing", filename=upload.filename)
                 results.append({
                     "filename": upload.filename,
@@ -233,32 +164,10 @@ async def upload_documents(files: list[UploadFile] = File(...)):
                 })
                 continue
 
-            # Embed & store
-            log.info("Ingesting chunks into Vector Search", filename=upload.filename, chunks=len(chunks))
-            try:
-                vector_store.add_documents(chunks)
-            except Exception as e:
-                import traceback
-
-                print("=" * 100)
-                print("VECTOR STORE FAILURE")
-                print("ERROR:", str(e))
-                print(traceback.format_exc())
-                print("=" * 100)
-
-                raise            
-            
-            log.info("Successfully ingested chunks", filename=upload.filename, chunks=len(chunks))
-
-            results.append({
-                "filename": upload.filename,
-                "status": "ingested",
-                "pages": len(docs),
-                "chunks": len(chunks),
-            })
+            log.info("Successfully ingested chunks", filename=upload.filename, **summary)
+            results.append({"filename": upload.filename, "status": "ingested", **summary})
     except Exception as e:
-        tb = traceback.format_exc()
-        log.error("Upload failed", traceback=tb)
+        log.error("Upload failed", traceback=traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -275,9 +184,10 @@ def list_uploads():
 
 @rag_router.post("/ingest-gcs")
 def trigger_gcs_ingestion():
-    """Trigger the original GCS-based ingestion from rag.py."""
+    """Index every PDF that is already in the GCS bucket."""
     try:
-        ingest_data_from_gcs()
-        return {"status": "GCS ingestion complete"}
+        totals = ingest_data_from_gcs()
+        return {"status": "GCS ingestion complete", **totals}
     except Exception as e:
+        log.error("GCS ingestion failed", traceback=traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

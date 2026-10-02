@@ -3,7 +3,7 @@ import { Search, Send, Sparkles, MessageSquare, Clock, Trash2 } from "lucide-rea
 import { askQuestion } from "@/lib/api";
 
 const EXAMPLE_QUERIES = [
-  "What is Krones AG total revenue in FY2024?",
+  "What is Aldermoor Industries total revenue in FY2024?",
   "What are the standard payment terms for servo motor suppliers?",
   "What EU customs duty applies to PLC controllers imported from Japan?",
   "What is the IFRS depreciation schedule for filling line equipment?",
@@ -51,7 +51,7 @@ export default function RagQATab() {
             <h2 className="text-base font-semibold font-heading text-card-foreground">Knowledge Query</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Ask questions against ingested Krones procurement documents — supplier contracts, EU tariff schedules, IFRS annual reports, and compliance policies.
+            Ask questions against ingested Aldermoor procurement documents — supplier contracts, EU tariff schedules, IFRS annual reports, and compliance policies.
           </p>
 
           <div className="mb-5 space-y-2">

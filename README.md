@@ -1,7 +1,7 @@
 <p align="center">
-  <h1 align="center">MerdianAI Audit</h1>
+  <h1 align="center">Meridian AI Audit</h1>
   <p align="center">
-    <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform - Krones</strong>
+    <strong>Multi-Agent Procurement Audit & RAG Document Intelligence Platform</strong>
   </p>
   <p align="center">
     Built with FastAPI · React · LangChain · Gemini · Vertex AI · Cloud Run
@@ -13,14 +13,14 @@
 ## Architecture
 
 <p align="center">
-  <img src="Supporting Documents/architecture_diagram.png" alt="MeridianAI Architecture" width="100%"/>
+  <img src="Supporting Documents/architecture_diagram.png" alt="Meridian AI Architecture" width="100%"/>
 </p>
 
 | Layer | Components | Technologies |
 |---|---|---|
 | **Client** | React Frontend | Vite, TypeScript, Tailwind CSS, Shadcn UI |
 | **Compute** | FastAPI Backend on GCP Cloud Run | Uvicorn, CORS, Static File Serving |
-| **AI Agents** | Procurement Audit Agent, RAG Pipeline | LangGraph, LangChain, Gemini 2.5 Pro |
+| **AI Agents** | Multi-agent Procurement Audit, RAG Pipeline | LangChain (`create_agent`), Gemini 2.5 Pro |
 | **Data & AI** | Gemini LLMs, Vertex AI Vector Search, Cloud Storage | Embeddings, GCS Buckets |
 | **Security** | Secret Manager | Runtime API Key Injection |
 | **CI/CD** | GitHub Actions → Cloud Build → Artifact Registry → Cloud Run | Automated Provisioning & Deployment |
@@ -41,13 +41,15 @@
   - [1. Backend Setup](#1-backend-setup)
   - [2. Frontend Setup](#2-frontend-setup)
 - [Running with Docker](#running-with-docker)
+- [How the Code Fits Together](#how-the-code-fits-together)
+- [Running the Tests](#running-the-tests)
 - [Environment Variables](#environment-variables)
 
 ---
 
 ## Prerequisites
 
-- **Python** 3.12.7
+- **Python** 3.12
 - **Node.js** 20+
 - **Google Cloud SDK** (`gcloud` CLI) — [Install Guide](https://cloud.google.com/sdk/docs/install)
 - **Docker** (optional, for containerised local runs)
@@ -59,12 +61,13 @@
 ## Project Structure
 
 ```
-MeridianAI/
+Meridian-AI/
 ├── backend/
 │   ├── api/            # FastAPI app, endpoints, and middleware
-│   ├── agent/          # LangGraph multi-agent procurement audit logic
+│   ├── agent/          # LangChain multi-agent procurement audit (agents, tools, prompts)
 │   ├── rag/            # RAG pipeline — document indexing & QA
 │   ├── config/         # Pydantic settings and app configuration
+│   ├── tests/          # Smoke tests (run without Google Cloud)
 │   └── logger/         # Structured logging with GCS flush support
 ├── frontend/
 │   ├── src/
@@ -77,9 +80,10 @@ MeridianAI/
 │       └── deploy.yml  # CI/CD — full GCP provisioning & Cloud Run deploy
 ├── credentials/        # Local service account keys (git-ignored)
 ├── Dockerfile          # Multi-stage build (Node + Python)
-├── docker-compose.yml  # Local containerised development
-├── requirements.txt    # Python dependencies
-└── .env                # Local environment variables (git-ignored)
+├── requirements.txt    # Python dependencies (pinned)
+├── requirements-dev.txt# + test tools
+├── .env.example        # Template for your local .env
+└── .env                # Your local environment variables (git-ignored)
 ```
 
 ---
@@ -186,15 +190,18 @@ Now that GCP is provisioned and your local credentials/ `.env` are set up, you c
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/MeridianAI.git
-cd MeridianAI
+git clone https://github.com/<your-org>/Meridian-AI.git
+cd Meridian-AI
+
+# Create your local settings file, then fill in the values
+cp .env.example .env
 
 # Create and activate a virtual environment
-python -m venv .meridian
+python3.12 -m venv .venv
 # Windows
-.meridian\Scripts\activate
+.venv\Scripts\activate
 # macOS / Linux
-source .meridian/bin/activate
+source .venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -210,7 +217,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=./credentials/service-account.json
 # (Optional) Set your quota project
 gcloud auth application-default set-quota-project <your-gcp-project-id>
 
-# Start the backend dev server
+# Start the backend dev server (run this from the project root, where .env lives)
 uvicorn api.main:app --app-dir backend --reload --port 8080
 ```
 
@@ -229,7 +236,7 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at **http://localhost:5173** (default Vite port) and will proxy API calls to the backend.
+The frontend will be available at **http://localhost:5173** (default Vite port) and talks directly to the backend at `http://localhost:8080` (see `frontend/src/lib/api.ts`).
 
 ---
 
@@ -241,11 +248,46 @@ Build and run the unified container that serves both the frontend and backend lo
 # Build the image
 docker build -t meridian-ai .
 
-# Run the container
-docker run -p 8080:8080 meridian-ai
+# Run the container (the image does not contain your .env or credentials, so pass them in)
+docker run -p 8080:8080 \
+  --env-file .env \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/creds/service-account.json \
+  -v "$(pwd)/credentials:/creds:ro" \
+  meridian-ai
 ```
 
 The application will be accessible at **http://localhost:8080**.
+
+---
+
+## How the Code Fits Together
+
+Every user action follows the same path: **browser → FastAPI route → LangChain logic → Google Cloud**.
+
+| You click… | Frontend (`frontend/src`) | Route (`backend/api/endpoints.py`) | Logic | Google Cloud |
+|---|---|---|---|---|
+| **Upload PDF** | `DocumentUploadTab` | `POST /api/rag/upload` | `rag/data_ingestion.py` (load → chunk → embed) | Vertex AI embeddings → Vector Search; PDF copy to Cloud Storage |
+| **Ask a question** | `RagQATab` | `POST /api/rag/ask` | `rag/retrieval.py` (retrieve → prompt → Gemini) | Vector Search, Gemini API |
+| **Run audit** | `AuditTab` | `POST /api/agent/audit` | `agent/agents.py` (3 agents + CFO), `agent/tools.py`, `agent/prompts.py` | Gemini API |
+| **System status** | `SystemStatusTab` | `GET /api/status` | `config/settings.py` | none |
+
+Things worth knowing:
+
+- **Two ways to authenticate to Google.** Chat (Gemini) uses an API key (`GOOGLE_API_KEY`). Embeddings and Vector Search use Google Cloud credentials (the service account).
+- **Nothing connects to Google Cloud when the server starts.** Models and the vector store are created the first time they are used, so `/api/health` and `/api/status` work even before GCP is configured.
+- **The agents use LangChain's `create_agent`.** It runs on LangGraph internally, but this project contains no graph code.
+- **Aldermoor Industries is a fictional company** used for the demo data and prompts.
+
+---
+
+## Running the Tests
+
+The tests need no Google Cloud account or API key; everything external is faked.
+
+```bash
+pip install -r requirements-dev.txt
+pytest backend/tests
+```
 
 ---
 
@@ -262,8 +304,8 @@ Create a `.env` file in the project root. See the table below for required and o
 | `GCS_BUCKET_NAME` | ✅ | GCS bucket for vector staging & uploads |
 | `GCS_PREFIX` | | Upload path prefix (default: `uploads/`) |
 | `GCP_SERVICE_ACCOUNT_PATH` | | Path to local service account JSON |
-| `LLM_MODEL_NAME` | | LLM model (default: `gemini-2.5-pro`) |
-| `EMBEDDING_MODEL_NAME` | | Embedding model (default: `gemini-embedding-2-preview`) |
+| `VERTEX_LLM_MODEL_NAME` | | Chat model (default: `gemini-2.5-pro`) |
+| `VERTEX_EMBEDDING_MODEL_NAME` | | Embedding model (default: `text-embedding-005`). Must output 768 dimensions to match the Vector Search index. |
 | `VECTOR_SEARCH_INDEX_ID` | ✅ | Vertex AI Vector Search index resource ID |
 | `VECTOR_SEARCH_INDEX_ENDPOINT_ID` | ✅ | Vertex AI Vector Search endpoint resource ID |
 

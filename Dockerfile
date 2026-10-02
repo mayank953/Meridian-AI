@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 
-FROM python:3.11-slim AS backend-builder
+FROM python:3.12-slim AS backend-builder
 WORKDIR /app
 
 # Set environment variables for Python

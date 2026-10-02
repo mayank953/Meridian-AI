@@ -27,11 +27,11 @@ const Index = () => {
         <div className="px-5 pt-6 pb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-base font-extrabold text-primary-foreground shrink-0 font-heading shadow-lg shadow-primary/20">
-              K
+              M
             </div>
             <div>
               <h1 className="text-sm font-bold font-heading text-foreground tracking-tight leading-tight">
-                Krones AI
+                Meridian AI
               </h1>
               <p className="text-[10px] text-muted-foreground leading-tight">
                 Procurement Intelligence
@@ -75,7 +75,7 @@ const Index = () => {
 
         {/* Footer */}
         <div className="p-4 border-t border-border/50 mx-3 mb-2">
-          <p className="text-[10px] text-muted-foreground/50 text-center tracking-wide">Krones AG · Neutraubling</p>
+          <p className="text-[10px] text-muted-foreground/50 text-center tracking-wide">Aldermoor Industries · Hamburg (fictional demo company)</p>
         </div>
       </aside>
 

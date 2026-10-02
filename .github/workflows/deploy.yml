@@ -192,6 +192,9 @@ jobs:
 
       # --- Phase 4: Secrets ---
       - name: Ensure Secret Manager Has API Key
+        env:
+          # Passed as an environment variable (not pasted into the script text) so the key never appears in the shell command
+          RAW_GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           # Create secret container if it doesn't exist
           if ! gcloud secrets describe GOOGLE_API_KEY >/dev/null 2>&1; then
@@ -200,7 +203,7 @@ jobs:
           fi
 
           # Sanitize: strip all whitespace, newlines, carriage returns
-          CLEAN_KEY=$(echo -n "${{ secrets.GOOGLE_API_KEY }}" | tr -d '[:space:]')
+          CLEAN_KEY=$(echo -n "$RAW_GOOGLE_API_KEY" | tr -d '[:space:]')
           echo "API Key length after sanitization: ${#CLEAN_KEY} characters"
 
           # Add the sanitized value as a new secret version
@@ -210,7 +213,8 @@ jobs:
           # Grant Cloud Run service account access to Secret Manager
           echo "Granting Secret Manager permissions to Cloud Run Service Account..."
           PROJECT_NUMBER=$(gcloud projects describe ${{ env.PROJECT_ID }} --format="value(projectNumber)")
-          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
+          # Least privilege: grant access to this one secret, not every secret in the project
+          gcloud secrets add-iam-policy-binding GOOGLE_API_KEY \
             --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
             --role="roles/secretmanager.secretAccessor" >/dev/null
 
@@ -227,7 +231,8 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --set-env-vars="ENVIRONMENT=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCP_REGION=${{ env.REGION }},GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-vector-staging,GCS_PREFIX=uploads/,VERTEX_LLM_MODEL_NAME=gemini-2.5-pro,VERTEX_EMBEDDING_MODEL_NAME=gemini-embedding-2-preview,VECTOR_SEARCH_INDEX_ID=${{ env.INDEX_ID }},VECTOR_SEARCH_INDEX_ENDPOINT_ID=${{ env.ENDPOINT_ID }}" \
+            --max-instances 3 \
+            --set-env-vars="ENVIRONMENT=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCP_REGION=${{ env.REGION }},GCS_BUCKET_NAME=${{ env.PROJECT_ID }}-vector-staging,GCS_PREFIX=uploads/,VERTEX_LLM_MODEL_NAME=gemini-2.5-pro,VERTEX_EMBEDDING_MODEL_NAME=text-embedding-005,VECTOR_SEARCH_INDEX_ID=${{ env.INDEX_ID }},VECTOR_SEARCH_INDEX_ENDPOINT_ID=${{ env.ENDPOINT_ID }}" \
             --update-secrets="GOOGLE_API_KEY=GOOGLE_API_KEY:latest"
 
       - name: Allow Public Access to Cloud Run

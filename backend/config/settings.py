@@ -5,7 +5,7 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     # App
-    app_name: str = "Krones Procurement Intelligence"
+    app_name: str = "Meridian AI - Procurement Intelligence"
     app_env: str = Field("", validation_alias="ENVIRONMENT")
     app_version: str = "1.0.0"
     debug: bool = True
@@ -19,8 +19,9 @@ class Settings(BaseSettings):
     gcp_service_account_path: str = Field("", validation_alias="GCP_SERVICE_ACCOUNT_PATH")
 
     # Model / RAG
-    llm_model_name: str = Field("", validation_alias="VERTEX_LLM_MODEL_NAME")
-    embedding_model_name: str = Field("", validation_alias="VERTEX_EMBEDDING_MODEL_NAME")
+    llm_model_name: str = Field("gemini-2.5-pro", validation_alias="VERTEX_LLM_MODEL_NAME")
+    # Must output 768 dimensions to match the Vector Search index (see rag/embeddings.py)
+    embedding_model_name: str = Field("text-embedding-005", validation_alias="VERTEX_EMBEDDING_MODEL_NAME")
     # VERTEX AI VECTOR SEARCH
     vector_search_index_id: str = Field("", validation_alias="VECTOR_SEARCH_INDEX_ID")
     vector_search_index_endpoint_id: str = Field("", validation_alias="VECTOR_SEARCH_INDEX_ENDPOINT_ID")

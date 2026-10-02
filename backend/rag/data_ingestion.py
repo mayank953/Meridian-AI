@@ -1,85 +1,73 @@
-import os
-import tempfile
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from google.cloud import storage
-from config.settings import settings
-from rag.vector_store import vector_store
-from logger import GLOBAL_LOGGER as log
+"""Getting documents INTO the vector database.
 
-def ingest_data_from_gcs():
-    """Loads PDFs from a GCS bucket, extracts text, splits it, and stores it."""
+    PDF file -> pages -> chunks (~1000 characters) -> embeddings -> Vector Search
+
+Two entry points share the same steps:
+  * ingest_pdf()           - one local PDF (used by the upload endpoint)
+  * ingest_data_from_gcs() - every PDF under the configured GCS bucket/prefix
+"""
+import os
+import shutil
+import tempfile
+
+from google.cloud import storage
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from config.settings import settings
+from logger import GLOBAL_LOGGER as log
+from rag.vector_store import get_vector_store
+
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 100  # neighbouring chunks share 100 characters so sentences are not cut off
+
+
+def split_into_chunks(pages: list[Document]) -> list[Document]:
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+    return splitter.split_documents(pages)
+
+
+def ingest_pdf(local_path: str, source: str) -> dict:
+    """Load one PDF, chunk it and store it. Returns {"pages": n, "chunks": n}.
+
+    `source` is saved in each chunk's metadata so answers can be traced back to a file.
+    """
+    pages = PyPDFLoader(local_path).load()
+    for page in pages:
+        page.metadata["source"] = source
+
+    chunks = split_into_chunks(pages)
+    if chunks:
+        log.info("Embedding chunks and pushing to Vector Search", source=source, chunks=len(chunks))
+        get_vector_store().add_documents(chunks)
+    return {"pages": len(pages), "chunks": len(chunks)}
+
+
+def ingest_data_from_gcs() -> dict:
+    """Ingest every PDF found in the GCS bucket under settings.GCS_PREFIX."""
     log.info("Connecting to GCS bucket", bucket=settings.GCS_BUCKET_NAME)
 
     client = storage.Client(project=settings.GCP_PROJECT)
-    bucket = client.bucket(settings.GCS_BUCKET_NAME)
-    blobs = list(bucket.list_blobs(prefix=settings.GCS_PREFIX))
+    blobs = client.bucket(settings.GCS_BUCKET_NAME).list_blobs(prefix=settings.GCS_PREFIX)
 
-    # Use a temp directory so files are not locked during processing
+    totals = {"files": 0, "pages": 0, "chunks": 0}
     tmp_dir = tempfile.mkdtemp()
-    documents = []
-
     try:
         for blob in blobs:
-            if blob.name.endswith(".pdf"):
-                local_path = os.path.join(tmp_dir, os.path.basename(blob.name))
-                blob.download_to_filename(local_path)
-                loader = PyPDFLoader(local_path)
-                docs = loader.load()
-                log.info("Loaded PDF from GCS", blob=blob.name, pages=len(docs))
-                # Preserve the original GCS source in metadata
-                for doc in docs:
-                    doc.metadata["source"] = f"gs://{settings.GCS_BUCKET_NAME}/{blob.name}"
-                documents.extend(docs)
+            if not blob.name.lower().endswith(".pdf"):
+                continue
+            local_path = os.path.join(tmp_dir, os.path.basename(blob.name))
+            blob.download_to_filename(local_path)
+            result = ingest_pdf(local_path, source=f"gs://{settings.GCS_BUCKET_NAME}/{blob.name}")
+            log.info("Ingested PDF from GCS", blob=blob.name, **result)
+            totals["files"] += 1
+            totals["pages"] += result["pages"]
+            totals["chunks"] += result["chunks"]
     finally:
-        # Clean up temp files after all processing is done
-        import shutil
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    if not documents:
-        log.warning("No documents found in the specified bucket/prefix")
-        return
-
-    log.info("Successfully loaded pages from GCS", pages=len(documents))
-
-    # Split text into manageable chunks
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100,
-    )
-    chunks = text_splitter.split_documents(docs)
-
-    # DEBUG START
-    from rag.embeddings import get_embeddings
-
-    emb = get_embeddings()
-
-    texts = [c.page_content for c in chunks]
-
-    vectors = emb.embed_documents(texts)
-
-    print("=" * 80)
-    print(f"CHUNKS COUNT: {len(chunks)}")
-    print(f"TEXTS COUNT: {len(texts)}")
-    print(f"EMBEDDINGS COUNT: {len(vectors)}")
-    print("=" * 80)
-    # DEBUG END
-
-    log.info("Split documents into chunks", chunks=len(chunks))
-
-    # Embed and store in Vertex AI Vector Search
-    log.info("Embedding chunks and pushing to Vertex AI Vector Search")
-    try:
-        vector_store.add_documents(chunks)
-    except Exception as e:
-        import traceback
-
-        print("=" * 100)
-        print("VECTOR STORE FAILURE")
-        print("ERROR:", str(e))
-        print(traceback.format_exc())
-        print("=" * 100)
-
-    raise    
-    log.info("Ingestion complete")
-
+    if totals["files"] == 0:
+        log.warning("No PDF documents found in the specified bucket/prefix")
+    log.info("Ingestion complete", **totals)
+    return totals
